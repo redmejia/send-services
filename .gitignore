@@ -6,8 +6,8 @@ project/.env
 project/Makefile
 project/run.sh
 
+p2p/src/db/migration/*
 p2p/src/go.sum
-p2p/src/db/dbpostgres/migration/*
 
 transaction-service/dist/*
 users-info-service/dist/*
