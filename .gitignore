@@ -1,0 +1,12 @@
+.vscode
+
+go.work.sum
+
+project/.env
+project/Makefile
+project/run.sh
+
+p2p/src/go.sum
+
+transaction-service/dist/*
+users-info-service/dist/*
