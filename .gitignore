@@ -9,5 +9,9 @@ project/run.sh
 p2p/src/db/migration/*
 p2p/src/go.sum
 
+fake-bank-service/internal/database/migration/*
+fake-bank-service/internal/env/*.env
+
+
 transaction-service/dist/*
 users-info-service/dist/*

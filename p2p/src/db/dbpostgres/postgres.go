@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/jackc/pgconn"
@@ -25,19 +26,13 @@ const (
 )
 
 func Connection() (*sql.DB, error) {
-	// port, _ := strconv.Atoi(os.Getenv("DBPORT"))
-	// connDB := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-	// 	os.Getenv("HOSTNAME"), port, os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"),
-	// 	os.Getenv("POSTGRES_DB"), os.Getenv("SSLMODE"),
-	// )
-	con := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=disable",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("HOSTNAME"),
-		os.Getenv("DBPORT"),
-		os.Getenv("POSTGRES_DB"),
+	port, _ := strconv.Atoi(os.Getenv("DBPORT"))
+	connDB := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		os.Getenv("HOSTNAME"), port, os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_DB"), os.Getenv("SSLMODE"),
 	)
-	db, err := sql.Open("pgx", con)
+
+	db, err := sql.Open("pgx", connDB)
 	if err != nil {
 		return nil, err
 	}
