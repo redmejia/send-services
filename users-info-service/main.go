@@ -30,13 +30,13 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:         ":8081",
+		Addr:         ":80",
 		Handler:      router.Router(&app),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
-	log.Println("Server running at http://localhost:8081/")
+	log.Println("Server running at http://localhost:80/")
 	err = srv.ListenAndServe()
 	log.Fatal("error server ", err)
 }

@@ -1,53 +1,70 @@
-version: '3.8'
+version: '3'
 
 services:
 
-  # users information service
-  # users-services:
-  #   build:
-  #     context: ./../users-info-service
-  #     dockerfile: ./../users-info-service/users-info-service.dockerfile
-  #   restart: always
-  #   ports:
-  #     - "8081:8081"
-  #   deploy:
-  #     mode: replicated
-  #     replicas: 1
-  #   environment:
-  #     DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable"
-  
-  # # trasanction service
-  # trasanction-service:
-  #   build: 
-  #     context: ./../transaction-service
-  #     dockerfile: ./../transaction-service/transaction-service.dockerfile
-  #   restart: always
-  #   ports:
-  #     - "8082:8082"
-  #   deploy:
-  #     mode: replicated
-  #     replicas: 1 
+  controller-service:
+    build: 
+      context: ./../controller-service
+      dockerfile: ./../controller-service/controller-service.Dockerfile
+    restart: always
+    ports:
+      - "8080:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable"
 
-  # postgres:
-  #   image: 'postgres:14.0'
-  #   ports:
-  #     - "5432:5432"
-  #   restart: always
-  #   deploy:
-  #     mode: replicated
-  #     replicas: 1
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: password
-  #     POSTGRES_DB: users
+  users-services:
+    build:
+      context: ./../users-info-service
+      dockerfile: ./../users-info-service/users-info-service.dockerfile
+    restart: always
+    ports:
+      - "8081:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable"
+  
+  # trasanction service
+  trasanction-service:
+    build: 
+      context: ./../transaction-service
+      dockerfile: ./../transaction-service/transaction-service.dockerfile
+    restart: always
+    ports:
+      - "8082:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable" 
 
   # this service has bank balance and cards infomation for testing
   bank-service:
     build: 
       context: ./../fake-bank-service
-      dockerfile: ./../fake-bank-service/fake-bank-service.dockerfile
+      dockerfile: ./../fake-bank-service/fake-bank-service.Dockerfile
     restart: always
     ports:
-      - "8090:8090"
+      - "8083:80"
+    
+
+  postgres:
+    image: 'postgres:14.0'
+    ports:
+      - "5432:5432"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users
+    
+
 
       

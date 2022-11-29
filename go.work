@@ -1,6 +1,7 @@
 go 1.19
 
 use (
+	./controller-service
 	./fake-bank-service
 	./p2p/src/
 	./transaction-service

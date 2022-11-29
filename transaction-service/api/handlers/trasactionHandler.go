@@ -8,7 +8,8 @@ import (
 	"p2p/transaction"
 )
 
-func TransactionHandler(w http.ResponseWriter, r *http.Request) {
+// This tranfer from wallet to walllet
+func (a *App) TransactionHandler(w http.ResponseWriter, r *http.Request) {
 	var tx transaction.Tx
 
 	err := json.NewDecoder(r.Body).Decode(&tx)

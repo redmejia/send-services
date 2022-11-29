@@ -2,12 +2,12 @@ package dbpostgres
 
 import (
 	"context"
-	newaccount "p2p/settingAccount"
+	account "p2p/settingAccount"
 	"strings"
 	"time"
 )
 
-func (db *DBPostgres) InsertNewUser(user *newaccount.Register) bool {
+func (db *DBPostgres) InsertNewUser(user *account.Register) bool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -41,9 +41,9 @@ func (db *DBPostgres) InsertNewUser(user *newaccount.Register) bool {
 	}
 
 	_, err = tx.ExecContext(ctx,
-		`insert into user_bank_info (user_uid, full_name, user_card, created_at)
-			values ($1, $2, $3, $4)
-		`, userUID, user.Bank.FullName, user.Bank.Card, time.Now())
+		`insert into user_bank_info (user_uid, full_name, user_card, cv_number, created_at)
+			values ($1, $2, $3, $4, $5)
+		`, userUID, user.Bank.FullName, user.Bank.Card, user.Bank.CvNumber, time.Now())
 
 	if err != nil {
 		db.ErrorLog.Fatal(err)
@@ -59,6 +59,8 @@ func (db *DBPostgres) InsertNewUser(user *newaccount.Register) bool {
 		db.ErrorLog.Fatal(err)
 	}
 
+	user.UserUID = userUID
+
 	err = tx.Commit()
 	if err != nil {
 		db.ErrorLog.Fatal(err)
@@ -66,4 +68,77 @@ func (db *DBPostgres) InsertNewUser(user *newaccount.Register) bool {
 
 	// all insertd
 	return true
+}
+
+func (db *DBPostgres) GetInfoBank(userID string) account.Bank {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	row := db.Db.QueryRowContext(ctx,
+		`select user_card, cv_number from user_bank_info where user_uid = $1`, userID)
+
+	var bankInfo account.Bank
+
+	err := row.Scan(&bankInfo.Card, &bankInfo.CvNumber)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+	}
+
+	return bankInfo
+}
+
+func (db *DBPostgres) ckeckWalletBalance(walletId string) (int, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var currentBalance int
+
+	row := db.Db.QueryRowContext(ctx,
+		`select balance from wallet 
+		where wallet_id = $1`, walletId)
+
+	err := row.Scan(&currentBalance)
+	if err != nil {
+		return 0, err
+	}
+
+	return currentBalance, nil
+}
+
+func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	currentBalance, err := db.ckeckWalletBalance(walletId)
+	if err != nil {
+		db.ErrorLog.Fatal("this is the check err : ", err)
+	}
+
+	if currentBalance == 0 {
+
+		_, err := db.Db.ExecContext(ctx,
+			`update wallet
+					set balance = $1
+				where wallet_id = $2`, amount, walletId)
+
+		if err != nil {
+			db.ErrorLog.Fatal("0 unpdate", err)
+		}
+
+	} else {
+
+		var newBalance int = currentBalance + amount
+		_, err := db.Db.ExecContext(ctx,
+			`update wallet
+					set balance = $1
+				where wallet_id = $2`, newBalance, walletId)
+
+		if err != nil {
+			db.ErrorLog.Fatal("plus one update ", err)
+		}
+
+	}
+
 }

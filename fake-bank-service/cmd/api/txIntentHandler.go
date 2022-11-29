@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Transaction struct {
@@ -20,11 +21,13 @@ func (a *ApiConfig) TxIntentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		// valid card 1111222233332369 | 103
 		// http://localhost:8080/api/txintent?card=1222&cv=123&amount=1000
+		// http://localhost:8080/api/txintent?card=****-****-****-1234&cv=123&amount=1000
 		// transaction intent
 
 		txIntent := r.URL.Query()
+		lastfour := strings.Split(txIntent.Get("card"), "-")[3]
 
-		card, err := a.DB.GetInfo(txIntent.Get("card"), txIntent.Get("cv"))
+		card, err := a.DB.GetInfo(lastfour, txIntent.Get("cv"))
 		if err != nil {
 			if errors.Is(err, database.ErrorNonedDBRowInResultSet) {
 				var cardNotFound = struct {
@@ -43,7 +46,11 @@ func (a *ApiConfig) TxIntentHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		a.InfoLog.Println("Card was found proceed with transaction")
+
 		txAmount, _ := strconv.Atoi(txIntent.Get("amount"))
+
+		a.InfoLog.Println("TX amount ", txAmount)
 
 		var tx Transaction
 

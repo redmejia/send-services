@@ -4,6 +4,7 @@ import (
 	"bank/fake-cards/internal/data"
 	"errors"
 	"log"
+	"strings"
 )
 
 type NoneDB struct {
@@ -38,12 +39,14 @@ func (n *NoneDB) GenerateFakeCards(twelveNum string, amountInCent int, statusCod
 
 var ErrorNonedDBRowInResultSet = errors.New("nonodb: no rows in result set")
 
-func (n *NoneDB) GetInfo(cardNum string, cardCv string) (data.Card, error) {
+func (n *NoneDB) GetInfo(lastFourNums string, cardCv string) (data.Card, error) {
 
 	for _, card := range n.Db {
-		if card.CardNumber == cardNum && card.CvNumber == cardCv {
+		lastfourInDB := strings.Split(card.CardNumber, "-")[3]
+		if lastfourInDB == lastFourNums && card.CvNumber == cardCv {
 			return card, nil
 		}
 	}
+
 	return data.Card{}, ErrorNonedDBRowInResultSet
 }

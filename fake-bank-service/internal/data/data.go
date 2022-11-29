@@ -27,11 +27,11 @@ const (
 	maxCv = 200
 )
 
-var CardNumberLenError = errors.New("card number length must be 12")
+var CardNumberLenError = errors.New("card number length must be 15")
 
 // GenFakeCards
 func GenFakeCards(firstTwelveNum string) (string, error) {
-	if len(firstTwelveNum) == 0 || len(firstTwelveNum) < 12 || len(firstTwelveNum) > 12 {
+	if len(firstTwelveNum) == 0 || len(firstTwelveNum) < 15 || len(firstTwelveNum) > 15 {
 		return "", CardNumberLenError
 	}
 	rand.Seed(time.Now().UnixNano())
