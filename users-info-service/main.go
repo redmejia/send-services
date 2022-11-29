@@ -38,5 +38,7 @@ func main() {
 
 	log.Println("Server running at http://localhost:80/")
 	err = srv.ListenAndServe()
-	log.Fatal("error server ", err)
+	if err != nil {
+		errorLog.Fatal(err)
+	}
 }

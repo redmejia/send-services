@@ -39,5 +39,8 @@ func main() {
 
 	infoLog.Println("==== TRANSACTION SERVICE ====")
 	infoLog.Println("Service is running http://localhost:80/api/v1")
-	errorLog.Fatal(srv.ListenAndServe())
+	err = srv.ListenAndServe()
+	if err != nil {
+		errorLog.Fatal(err)
+	}
 }

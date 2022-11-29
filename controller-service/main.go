@@ -41,6 +41,6 @@ func main() {
 	infoLog.Println("Controller service is running at http://localhost:80/api/v1")
 	err = srv.ListenAndServe()
 	if err != nil {
-		errorLog.Fatal("THIS IS THE ERROR : 8081 = ==== ", err)
+		errorLog.Fatal(err)
 	}
 }

@@ -51,7 +51,7 @@ func main() {
 	infoLog.Println("Server is running at http://localhost:80/api/")
 	err = srv.ListenAndServe()
 	if err != nil {
-		errLog.Fatal("ERROR HERE SHIT : ", err)
+		errLog.Fatal(err)
 	}
 
 }
