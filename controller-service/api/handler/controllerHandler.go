@@ -20,11 +20,10 @@ func (a *App) ControllerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch requestPayload.Acction {
-	case "transfer":
-		a.tranfer(w, requestPayload.Transfer.UserID, requestPayload.Transfer.Amount)
-	case "tx":
-		a.SendData(`{"echo" : "hello world", "send": true}`)
-		w.Write([]byte(`{"recived_data" : true}`))
+	case "transfer_to_wallet":
+		a.tranferToWallet(w, requestPayload.Transfer.UserID, requestPayload.Transfer.Amount)
+	case "wallet_to_wallet":
+		a.walletToWallet(w, requestPayload.Transfer.UserID, requestPayload.Transfer.DestinationWallet, requestPayload.Transfer.Amount)
 	}
 
 }

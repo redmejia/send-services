@@ -2,8 +2,9 @@ package transfer
 
 // New trian
 type TransferIntent struct {
-	UserID string `json:"user_id"` // user_uid
-	Amount int    `json:"amount"`
+	UserID            string `json:"user_id"` // user_uid same for wallet_id
+	DestinationWallet string `json:"dst_wallet"`
+	Amount            int    `json:"amount"`
 }
 
 type Transaction struct {

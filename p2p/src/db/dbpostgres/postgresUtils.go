@@ -92,18 +92,18 @@ func (db *DBPostgres) ckeckWalletBalance(walletId string) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var currentBalance int
+	var srcWalletBalance int
 
 	row := db.Db.QueryRowContext(ctx,
 		`select balance from wallet 
 		where wallet_id = $1`, walletId)
 
-	err := row.Scan(&currentBalance)
+	err := row.Scan(&srcWalletBalance)
 	if err != nil {
 		return 0, err
 	}
 
-	return currentBalance, nil
+	return srcWalletBalance, nil
 }
 
 func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
@@ -111,12 +111,12 @@ func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	currentBalance, err := db.ckeckWalletBalance(walletId)
+	srcWalletBalance, err := db.ckeckWalletBalance(walletId)
 	if err != nil {
-		db.ErrorLog.Fatal("this is the check err : ", err)
+		db.ErrorLog.Fatal(err)
 	}
 
-	if currentBalance == 0 {
+	if srcWalletBalance == 0 {
 
 		_, err := db.Db.ExecContext(ctx,
 			`update wallet
@@ -129,7 +129,7 @@ func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
 
 	} else {
 
-		var newBalance int = currentBalance + amount
+		var newBalance int = srcWalletBalance + amount
 		_, err := db.Db.ExecContext(ctx,
 			`update wallet
 					set balance = $1
@@ -141,4 +141,73 @@ func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
 
 	}
 
+}
+
+func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet string, amount int) bool {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// check balance on wallet is grather to the amount
+	// if the current balance in wallet or sender has enougth then
+	// source wallet
+	srcWalletBalance, err := db.ckeckWalletBalance(userUID)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+	}
+
+	// destination wallet
+	dstBalanceWallet, err := db.ckeckWalletBalance(destinationWallet)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+	}
+
+	if srcWalletBalance > amount {
+		tx, err := db.Db.BeginTx(ctx, nil)
+		if err != nil {
+			db.ErrorLog.Fatal(err)
+		}
+		defer tx.Rollback()
+
+		// decrement balance on the source wallet
+		var newSrcBalance int = srcWalletBalance - amount
+		_, err = tx.ExecContext(ctx,
+			`update wallet 
+				set balance = $1
+			where wallet_id = $2`, newSrcBalance, userUID)
+		if err != nil {
+			db.ErrorLog.Fatal(err)
+		}
+
+		if dstBalanceWallet == 0 {
+			_, err := tx.ExecContext(ctx,
+				`update wallet
+					set balance = $1
+				where wallet_id = $2`, amount, destinationWallet)
+			if err != nil {
+				db.ErrorLog.Fatal(err)
+			}
+
+		} else {
+
+			// increment the balance on the detination wallet
+			var newDstBalance int = dstBalanceWallet + amount
+			_, err = tx.ExecContext(ctx,
+				`update wallet
+					set balance = $1
+				where wallet_id = $2`, newDstBalance, destinationWallet)
+			if err != nil {
+				db.ErrorLog.Fatal(err)
+			}
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			db.ErrorLog.Fatal(err)
+		}
+
+		return true
+	}
+
+	return false
 }

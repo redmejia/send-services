@@ -22,6 +22,7 @@ func (a *App) TransferHandler(w http.ResponseWriter, r *http.Request) {
 	bankInfo := a.DB.GetInfoBank(txIntent.UserID)
 
 	transfer := checkTransfer(a, &bankInfo, txIntent.Amount)
+	// if we have recive Proceed true and trasanction status code 2 which is accepted
 	if transfer.Proceed && transfer.TxStatusCode == 2 {
 		// tranfer is a accepted than make tranfer to wallet
 		a.DB.TransferFromBankToWallet(txIntent.UserID, txIntent.Amount)
@@ -37,6 +38,7 @@ func (a *App) TransferHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 
+		// Proceed is false and the trasaction status code is 4 which is declined
 		transferByte, err := json.Marshal(&transfer)
 		if err != nil {
 			a.ErrorLog.Fatal(err)
@@ -50,12 +52,10 @@ func (a *App) TransferHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkTransfer(a *App, bankInfo *account.Bank, amount int) transfer.Transaction {
-	// http: //localhost:8090/api/txintent?card=****-****-****-1491&cv=172&amount=53
+	// http://localhost:8090/api/txintent?card=****-****-****-1491&cv=172&amount=53
 	// http://localhost:8083/api/txintent?card=1111-2222-3333-1871&cv=127&amount=53
 	url := fmt.Sprintf("http://bank-service/api/txintent?card=%s&cv=%s&amount=%d",
 		bankInfo.Card, bankInfo.CvNumber, amount)
-
-	// url := fmt.Sprintf("http://bank-service/api/txintent?card=%s&cv=%s&amount=%d",
 
 	resp, err := http.Get(url)
 	if err != nil {
