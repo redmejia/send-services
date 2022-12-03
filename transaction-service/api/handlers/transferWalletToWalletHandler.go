@@ -19,9 +19,12 @@ func (a *App) TransferWalletToWalletHandler(w http.ResponseWriter, r *http.Reque
 	var txStatus transfer.Transaction
 	ok := a.DB.TransferWalletToWallet(tx.UserID, tx.DestinationWallet, tx.Amount)
 	if ok {
+		_ = a.DB.InsertTrxsRecordWalletToWallet(tx.UserID, tx.DestinationWallet, tx.Amount)
+
 		txStatus.Proceed = true
 		txStatus.TxMessage = "Accepted"
 		txStatus.TxStatusCode = 2
+
 	} else {
 		txStatus.Proceed = false
 		txStatus.TxMessage = "Declined"

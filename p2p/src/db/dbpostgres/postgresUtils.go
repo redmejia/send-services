@@ -3,6 +3,7 @@ package dbpostgres
 import (
 	"context"
 	account "p2p/settingAccount"
+	"p2p/wallet"
 	"strings"
 	"time"
 )
@@ -180,6 +181,7 @@ func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet s
 		}
 
 		if dstBalanceWallet == 0 {
+
 			_, err := tx.ExecContext(ctx,
 				`update wallet
 					set balance = $1
@@ -210,4 +212,59 @@ func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet s
 	}
 
 	return false
+}
+
+// wallet trasanction records
+func (db *DBPostgres) InsertTrxsRecordWalletToWallet(userID string, destinationWallet string, amount int) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err := db.Db.ExecContext(ctx,
+		`insert into wallet_transactions (user_uid, from_wallet, to_wallet, amount) 
+			values ($1, $2, $3, $4)`, userID, userID, destinationWallet, amount)
+
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+		return false
+	}
+
+	return true
+
+}
+
+// user_id primary key on the tale is the user uuid also is the same for the wallet
+func (db *DBPostgres) InsertTrxsRecordBankToWallet(userID string, bankCard string, amount int) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	// userID is same as wallet
+	_, err := db.Db.ExecContext(ctx,
+		`insert into bank_transactions (user_uid, from_bank, to_wallet, amount) 
+			values ($1, $2, $3, $4)`, userID, bankCard, userID, amount)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+		return false
+	}
+
+	return true
+}
+
+func (db *DBPostgres) GetWalletInformation(walletID string) wallet.Wallet {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var myWallet wallet.Wallet
+
+	row := db.Db.QueryRowContext(ctx,
+		`select username, balance 
+			from wallet 
+		where wallet_id = $1`, walletID)
+
+	err := row.Scan(&myWallet.Username, &myWallet.Balance)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+	}
+
+	return myWallet
+
 }

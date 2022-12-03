@@ -27,6 +27,9 @@ func (a *App) TransferHandler(w http.ResponseWriter, r *http.Request) {
 		// tranfer is a accepted than make tranfer to wallet
 		a.DB.TransferFromBankToWallet(txIntent.UserID, txIntent.Amount)
 
+		// insert record userID is the same for wollet id
+		_ = a.DB.InsertTrxsRecordBankToWallet(txIntent.UserID, bankInfo.Card, txIntent.Amount)
+
 		transferByte, err := json.Marshal(&transfer)
 		if err != nil {
 			a.ErrorLog.Fatal(err)
