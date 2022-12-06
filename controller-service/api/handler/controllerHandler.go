@@ -32,6 +32,8 @@ func (a *App) ControllerTrxHandler(w http.ResponseWriter, r *http.Request) {
 		a.walletToWallet(w, &payload.Sender, &payload.Reciver)
 	case "wallet_info":
 		a.GetWalletInfoById(w, payload.Wallet.UserID)
+	case "share_wallet_info":
+		a.ShareWalletToSender(w, payload.Wallet.ShareID)
 	}
 
 }

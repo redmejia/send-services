@@ -133,3 +133,25 @@ func (a *App) GetWalletInfoById(w http.ResponseWriter, walletID string) {
 	w.Write(body)
 
 }
+
+func (a *App) ShareWalletToSender(w http.ResponseWriter, shareID string) {
+
+	url := "http://wallet-service/api/v1/share?share_id=" + shareID
+
+	resp, err := http.Get(url)
+	if err != nil {
+		a.ErrorLog.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		a.ErrorLog.Fatal(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+
+}

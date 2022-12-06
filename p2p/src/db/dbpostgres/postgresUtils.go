@@ -272,3 +272,23 @@ func (db *DBPostgres) GetWalletInformation(userID string) wallet.Wallet {
 	return myWallet
 
 }
+
+// For share wallet info username and wallet id to sender
+func (db *DBPostgres) ShareWalletInfo(shareid string) wallet.Wallet {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var share wallet.Wallet
+
+	row := db.Db.QueryRowContext(ctx,
+		`select username, wallet_id 
+		from wallet 
+	where share_id = $1`, shareid)
+
+	err := row.Scan(&share.Username, &share.WalletId)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+	}
+
+	return share
+}
