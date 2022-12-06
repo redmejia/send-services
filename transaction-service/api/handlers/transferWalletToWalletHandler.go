@@ -9,7 +9,7 @@ import (
 
 // This tranfer from wallet to walllet
 func (a *App) TransferWalletToWalletHandler(w http.ResponseWriter, r *http.Request) {
-	var tx transfer.TransferIntent
+	var tx transfer.TransactionIntent
 
 	err := json.NewDecoder(r.Body).Decode(&tx)
 	if err != nil {
@@ -17,9 +17,9 @@ func (a *App) TransferWalletToWalletHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	var txStatus transfer.Transaction
-	ok := a.DB.TransferWalletToWallet(tx.UserID, tx.DestinationWallet, tx.Amount)
+	ok := a.DB.TransferWalletToWallet(&tx.Sender, &tx.Reciver)
 	if ok {
-		_ = a.DB.InsertTrxsRecordWalletToWallet(tx.UserID, tx.DestinationWallet, tx.Amount)
+		_ = a.DB.InsertTrxsRecordWalletToWallet(&tx.Sender, &tx.Reciver)
 
 		txStatus.Proceed = true
 		txStatus.TxMessage = "Accepted"

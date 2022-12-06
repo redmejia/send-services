@@ -9,7 +9,7 @@ import (
 func Router(a *handler.App) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v1", cors.Cors(a.ControllerHandler))
+	mux.HandleFunc("/api/v1", cors.Cors(a.ControllerTrxHandler))
 
 	return mux
 }

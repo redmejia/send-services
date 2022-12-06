@@ -12,7 +12,7 @@ import (
 // transfer money from bank to wallet
 func (a *App) TransferHandler(w http.ResponseWriter, r *http.Request) {
 
-	var txIntent transfer.TransferIntent
+	var txIntent transfer.TranferFounds
 
 	err := json.NewDecoder(r.Body).Decode(&txIntent)
 	if err != nil {
@@ -25,10 +25,10 @@ func (a *App) TransferHandler(w http.ResponseWriter, r *http.Request) {
 	// if we have recive Proceed true and trasanction status code 2 which is accepted
 	if transfer.Proceed && transfer.TxStatusCode == 2 {
 		// tranfer is a accepted than make tranfer to wallet
-		a.DB.TransferFromBankToWallet(txIntent.UserID, txIntent.Amount)
+		a.DB.TransferFromBankToWallet(txIntent.WalletId, txIntent.Amount)
 
 		// insert record userID is the same for wollet id
-		_ = a.DB.InsertTrxsRecordBankToWallet(txIntent.UserID, bankInfo.Card, txIntent.Amount)
+		_ = a.DB.InsertTrxsRecordBankToWallet(txIntent.UserID, bankInfo.Card, txIntent.WalletId, txIntent.Amount)
 
 		transferByte, err := json.Marshal(&transfer)
 		if err != nil {

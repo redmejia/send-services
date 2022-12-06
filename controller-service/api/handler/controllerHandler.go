@@ -4,26 +4,34 @@ import (
 	"encoding/json"
 	"net/http"
 	"p2p/transfer"
+	"p2p/wallet"
 )
 
 type Payload struct {
-	Acction  string                  `json:"acction"`
-	Transfer transfer.TransferIntent `json:"transfer"`
+	Acction           string `json:"acction"`
+	transfer.Transfer `json:"transfer"`
+	wallet.Wallet     `json:"wallet"`
 }
 
-func (a *App) ControllerHandler(w http.ResponseWriter, r *http.Request) {
+// transaction or transefer controller
+func (a *App) ControllerTrxHandler(w http.ResponseWriter, r *http.Request) {
 
-	var requestPayload Payload
-	err := json.NewDecoder(r.Body).Decode(&requestPayload)
+	var payload Payload
+	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		a.ErrorLog.Println("json controller ", err)
 	}
 
-	switch requestPayload.Acction {
+	payloadreq, _ := json.MarshalIndent(&payload, "", "		")
+	a.InfoLog.Println(string(payloadreq))
+
+	switch payload.Acction {
 	case "transfer_to_wallet":
-		a.tranferToWallet(w, requestPayload.Transfer.UserID, requestPayload.Transfer.Amount)
+		a.tranferToWallet(w, &payload.TranferFounds)
 	case "wallet_to_wallet":
-		a.walletToWallet(w, requestPayload.Transfer.UserID, requestPayload.Transfer.DestinationWallet, requestPayload.Transfer.Amount)
+		a.walletToWallet(w, &payload.Sender, &payload.Reciver)
+	case "wallet_info":
+		a.GetWalletInfoById(w, payload.Wallet.UserID)
 	}
 
 }

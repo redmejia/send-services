@@ -6,4 +6,5 @@ use (
 	./p2p/src/
 	./transaction-service
 	./users-info-service/
+	./wallet-service
 )

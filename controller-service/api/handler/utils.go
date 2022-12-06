@@ -8,14 +8,17 @@ import (
 	"p2p/transfer"
 )
 
-func (a *App) tranferToWallet(w http.ResponseWriter, userUID string, amount int) {
+// transfer from bank to wallet
+func (a *App) tranferToWallet(w http.ResponseWriter, transferFounds *transfer.TranferFounds) {
 
-	transferIntent := transfer.TransferIntent{
-		UserID: userUID,
-		Amount: amount,
+	transferFound := transfer.TranferFounds{
+		UserID:   transferFounds.UserID,
+		WalletId: transferFounds.WalletId,
+		Username: transferFounds.Username,
+		Amount:   transferFounds.Amount,
 	}
 
-	newTransfer, err := json.Marshal(&transferIntent)
+	newTransfer, err := json.Marshal(&transferFound)
 	if err != nil {
 		a.ErrorLog.Fatal(err)
 	}
@@ -66,13 +69,9 @@ func (a *App) tranferToWallet(w http.ResponseWriter, userUID string, amount int)
 
 }
 
-func (a *App) walletToWallet(w http.ResponseWriter, userUID string, toWallet string, amount int) {
+func (a *App) walletToWallet(w http.ResponseWriter, sender *transfer.Sender, reciver *transfer.Reciver) {
 
-	trxIntentWalletToWallet := transfer.TransferIntent{
-		UserID:            userUID, // user uid is the same for wallet_id
-		DestinationWallet: toWallet,
-		Amount:            amount,
-	}
+	trxIntentWalletToWallet := transfer.TransactionIntent{Sender: *sender, Reciver: *reciver}
 
 	trxPaylod, err := json.Marshal(&trxIntentWalletToWallet)
 	if err != nil {
@@ -107,5 +106,30 @@ func (a *App) walletToWallet(w http.ResponseWriter, userUID string, toWallet str
 	}
 
 	a.InfoLog.Println("RESPONSE :  ", string(body))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+}
+
+func (a *App) GetWalletInfoById(w http.ResponseWriter, walletID string) {
+
+	url := "http://wallet-service/api/v1/wallet?user_id=" + walletID
+
+	resp, err := http.Get(url)
+	if err != nil {
+		a.ErrorLog.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		a.ErrorLog.Fatal(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
 
 }

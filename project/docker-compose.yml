@@ -18,7 +18,7 @@ services:
   users-services:
     build:
       context: ./../users-info-service
-      dockerfile: ./../users-info-service/users-info-service.dockerfile
+      dockerfile: ./../users-info-service/users-info-service.Dockerfile
     restart: always
     ports:
       - "8081:80"
@@ -28,11 +28,10 @@ services:
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable"
   
-  # trasanction service
   trasanction-service:
     build: 
       context: ./../transaction-service
-      dockerfile: ./../transaction-service/transaction-service.dockerfile
+      dockerfile: ./../transaction-service/transaction-service.Dockerfile
     restart: always
     ports:
       - "8082:80"
@@ -41,8 +40,7 @@ services:
       replicas: 1
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable" 
-
-  # this service has bank balance and cards infomation for testing
+  
   bank-service:
     build: 
       context: ./../fake-bank-service
@@ -51,6 +49,19 @@ services:
     ports:
       - "8083:80"
     
+  wallet-service:
+    build: 
+      context: ./../wallet-service
+      dockerfile: ./../wallet-service/wallet-service.Dockerfile
+    restart: always
+    ports:
+      - "8084:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable" 
+
 
   postgres:
     image: 'postgres:14.0'

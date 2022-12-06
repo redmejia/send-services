@@ -3,6 +3,7 @@ package dbpostgres
 import (
 	"context"
 	account "p2p/settingAccount"
+	"p2p/transfer"
 	"p2p/wallet"
 	"strings"
 	"time"
@@ -41,18 +42,19 @@ func (db *DBPostgres) InsertNewUser(user *account.Register) bool {
 		db.ErrorLog.Fatal(err)
 	}
 
+	username := strings.Split(user.Email, "@")[0]
+
 	_, err = tx.ExecContext(ctx,
-		`insert into user_bank_info (user_uid, full_name, user_card, cv_number, created_at)
-			values ($1, $2, $3, $4, $5)
-		`, userUID, user.Bank.FullName, user.Bank.Card, user.Bank.CvNumber, time.Now())
+		`insert into user_bank_info (user_uid, username, full_name, user_card, cv_number, created_at)
+			values ($1, $2, $3, $4, $5, $6)
+		`, userUID, username, user.Bank.FullName, user.Bank.Card, user.Bank.CvNumber, time.Now())
 
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 	}
 
-	username := strings.Split(user.Email, "@")[0]
 	_, err = tx.ExecContext(ctx,
-		`insert into wallet (wallet_id, username, balance, created_at)
+		`insert into wallet (user_uid, username, balance, created_at)
 			values ($1, $2, $3, $4)
 		`, userUID, username, 0, time.Now())
 
@@ -107,6 +109,7 @@ func (db *DBPostgres) ckeckWalletBalance(walletId string) (int, error) {
 	return srcWalletBalance, nil
 }
 
+// Need the wallet id not user id I will pass as paramert later
 func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -144,7 +147,7 @@ func (db *DBPostgres) TransferFromBankToWallet(walletId string, amount int) {
 
 }
 
-func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet string, amount int) bool {
+func (db *DBPostgres) TransferWalletToWallet(sender *transfer.Sender, reciver *transfer.Reciver) bool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -152,18 +155,18 @@ func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet s
 	// check balance on wallet is grather to the amount
 	// if the current balance in wallet or sender has enougth then
 	// source wallet
-	srcWalletBalance, err := db.ckeckWalletBalance(userUID)
+	srcWalletBalance, err := db.ckeckWalletBalance(sender.SourceWalletID)
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 	}
 
 	// destination wallet
-	dstBalanceWallet, err := db.ckeckWalletBalance(destinationWallet)
+	dstBalanceWallet, err := db.ckeckWalletBalance(reciver.DestinationWalletID)
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 	}
 
-	if srcWalletBalance > amount {
+	if srcWalletBalance > sender.Amount {
 		tx, err := db.Db.BeginTx(ctx, nil)
 		if err != nil {
 			db.ErrorLog.Fatal(err)
@@ -171,21 +174,21 @@ func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet s
 		defer tx.Rollback()
 
 		// decrement balance on the source wallet
-		var newSrcBalance int = srcWalletBalance - amount
+		var newSrcBalance int = srcWalletBalance - sender.Amount
 		_, err = tx.ExecContext(ctx,
 			`update wallet 
 				set balance = $1
-			where wallet_id = $2`, newSrcBalance, userUID)
+			where user_uid = $2 and wallet_id = $3`, newSrcBalance, sender.UserID, sender.SourceWalletID)
 		if err != nil {
 			db.ErrorLog.Fatal(err)
 		}
 
 		if dstBalanceWallet == 0 {
-
+			// reciver does not share user_id but does share usename
 			_, err := tx.ExecContext(ctx,
 				`update wallet
 					set balance = $1
-				where wallet_id = $2`, amount, destinationWallet)
+				where username = $2 and wallet_id = $3`, sender.Amount, reciver.Username, reciver.DestinationWalletID)
 			if err != nil {
 				db.ErrorLog.Fatal(err)
 			}
@@ -193,11 +196,11 @@ func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet s
 		} else {
 
 			// increment the balance on the detination wallet
-			var newDstBalance int = dstBalanceWallet + amount
+			var newDstBalance int = dstBalanceWallet + sender.Amount
 			_, err = tx.ExecContext(ctx,
 				`update wallet
 					set balance = $1
-				where wallet_id = $2`, newDstBalance, destinationWallet)
+				where username = $2 and wallet_id = $3`, newDstBalance, reciver.Username, reciver.DestinationWalletID)
 			if err != nil {
 				db.ErrorLog.Fatal(err)
 			}
@@ -215,13 +218,13 @@ func (db *DBPostgres) TransferWalletToWallet(userUID string, destinationWallet s
 }
 
 // wallet trasanction records
-func (db *DBPostgres) InsertTrxsRecordWalletToWallet(userID string, destinationWallet string, amount int) bool {
+func (db *DBPostgres) InsertTrxsRecordWalletToWallet(sender *transfer.Sender, reciver *transfer.Reciver) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	_, err := db.Db.ExecContext(ctx,
 		`insert into wallet_transactions (user_uid, from_wallet, to_wallet, amount) 
-			values ($1, $2, $3, $4)`, userID, userID, destinationWallet, amount)
+			values ($1, $2, $3, $4)`, sender.SourceWalletID, sender.SourceWalletID, reciver.DestinationWalletID, sender.Amount)
 
 	if err != nil {
 		db.ErrorLog.Fatal(err)
@@ -233,13 +236,13 @@ func (db *DBPostgres) InsertTrxsRecordWalletToWallet(userID string, destinationW
 }
 
 // user_id primary key on the tale is the user uuid also is the same for the wallet
-func (db *DBPostgres) InsertTrxsRecordBankToWallet(userID string, bankCard string, amount int) bool {
+func (db *DBPostgres) InsertTrxsRecordBankToWallet(userID string, bankCard string, walletId string, amount int) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	// userID is same as wallet
 	_, err := db.Db.ExecContext(ctx,
 		`insert into bank_transactions (user_uid, from_bank, to_wallet, amount) 
-			values ($1, $2, $3, $4)`, userID, bankCard, userID, amount)
+			values ($1, $2, $3, $4)`, userID, bankCard, walletId, amount)
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 		return false
@@ -248,7 +251,8 @@ func (db *DBPostgres) InsertTrxsRecordBankToWallet(userID string, bankCard strin
 	return true
 }
 
-func (db *DBPostgres) GetWalletInformation(walletID string) wallet.Wallet {
+// my wallet information by wallet id
+func (db *DBPostgres) GetWalletInformation(userID string) wallet.Wallet {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -256,11 +260,11 @@ func (db *DBPostgres) GetWalletInformation(walletID string) wallet.Wallet {
 	var myWallet wallet.Wallet
 
 	row := db.Db.QueryRowContext(ctx,
-		`select username, balance 
+		`select user_uid, wallet_id, username, balance, created_at
 			from wallet 
-		where wallet_id = $1`, walletID)
+		where user_uid = $1`, userID)
 
-	err := row.Scan(&myWallet.Username, &myWallet.Balance)
+	err := row.Scan(&myWallet.UserID, &myWallet.WalletId, &myWallet.Username, &myWallet.Balance, &myWallet.CreatedAt)
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 	}
