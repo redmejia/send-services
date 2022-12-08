@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	account "p2p/settingAccount"
+	account "p2p/auth"
 	"p2p/transfer"
 )
 

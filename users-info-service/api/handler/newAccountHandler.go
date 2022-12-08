@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	settingaccount "p2p/settingAccount"
+	"p2p/auth"
+	account "p2p/auth"
 	"users/accounts/internal/utils/security"
 )
 
 func (a *App) NewAccountHandler(w http.ResponseWriter, r *http.Request) {
-	var register settingaccount.Register
+	var register account.Register
 
 	err := json.NewDecoder(r.Body).Decode(&register)
 	if err != nil {
@@ -25,18 +26,72 @@ func (a *App) NewAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 	ok := a.Db.InsertNewUser(&register)
 	if ok {
-		a.InfoLog.Println("New user was created")
-	} else {
-		a.ErrorLog.Println("Ooops something went wrong")
-	}
 
-	regByte, err := json.Marshal(&register)
+		successRegister := a.Db.GetAuthSuccess(register.Email)
+		regByte, err := json.Marshal(&successRegister)
+		if err != nil {
+			a.ErrorLog.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(regByte)
+	} else {
+
+		failRegister := auth.Fail{IsError: true, Message: "Unable to register"}
+		regByte, err := json.Marshal(&failRegister)
+		if err != nil {
+			a.ErrorLog.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(regByte)
+
+	}
+}
+
+func (a *App) SigninHandler(w http.ResponseWriter, r *http.Request) {
+
+	var signin account.Signin
+
+	err := json.NewDecoder(r.Body).Decode(&signin)
 	if err != nil {
 		a.ErrorLog.Fatal(err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(regByte)
+	var hashPassword string
+	ok := a.Db.GetUserAuthInfo(signin.Email, &hashPassword)
+
+	if ok {
+
+		ok, err := security.ComparePassword(hashPassword, signin.Password)
+		if err != nil {
+			a.ErrorLog.Fatal(err)
+		}
+
+		if ok {
+
+			successSignin := a.Db.GetAuthSuccess(signin.Email)
+			regByte, err := json.Marshal(&successSignin)
+			if err != nil {
+				a.ErrorLog.Fatal(err)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(regByte)
+
+		} else {
+
+			failSignin := auth.Fail{IsError: true, Message: "Unable to Signin"}
+			regByte, err := json.Marshal(&failSignin)
+			if err != nil {
+				a.ErrorLog.Fatal(err)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(regByte)
+
+		}
+
+	}
 
 }

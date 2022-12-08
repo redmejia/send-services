@@ -2,7 +2,8 @@ package dbpostgres
 
 import (
 	"context"
-	account "p2p/settingAccount"
+	"p2p/auth"
+	account "p2p/auth"
 	"p2p/transfer"
 	"p2p/wallet"
 	"strings"
@@ -291,4 +292,45 @@ func (db *DBPostgres) ShareWalletInfo(shareid string) wallet.Wallet {
 	}
 
 	return share
+}
+
+func (db *DBPostgres) GetAuthSuccess(email string) auth.Success {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	row := db.Db.QueryRowContext(ctx,
+		`select s.user_uid, w.username, r.phone from signin as s 
+			join wallet as w on s.user_uid = w.user_uid
+			join register as r on w.user_uid = r.user_uid
+		where s.email = $1`, email)
+
+	var success auth.Success
+	err := row.Scan(&success.UserID, &success.Username, &success.PhoneNumber)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+	}
+
+	return success
+
+}
+
+func (db *DBPostgres) GetUserAuthInfo(email string, dstHashPassword *string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	row := db.Db.QueryRowContext(ctx,
+		`select password from signin
+			where email = $1 `, email)
+
+	var pwd string
+	err := row.Scan(&pwd)
+	if err != nil {
+		db.ErrorLog.Fatal(err)
+		return false
+	}
+
+	*dstHashPassword = pwd
+
+	return true
 }
