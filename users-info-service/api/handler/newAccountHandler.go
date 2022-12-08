@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 	"p2p/auth"
-	account "p2p/auth"
 	"users/accounts/internal/utils/security"
 )
 
 func (a *App) NewAccountHandler(w http.ResponseWriter, r *http.Request) {
-	var register account.Register
+	// This is practice bank information can be add after register information not need on one json payload
+	var register auth.Register
 
 	err := json.NewDecoder(r.Body).Decode(&register)
 	if err != nil {
@@ -28,6 +28,9 @@ func (a *App) NewAccountHandler(w http.ResponseWriter, r *http.Request) {
 	if ok {
 
 		successRegister := a.Db.GetAuthSuccess(register.Email)
+		// this may not need on register
+		successRegister.Fail.IsError = false
+		successRegister.Fail.Message = ""
 		regByte, err := json.Marshal(&successRegister)
 		if err != nil {
 			a.ErrorLog.Fatal(err)
@@ -35,9 +38,14 @@ func (a *App) NewAccountHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(regByte)
-	} else {
 
-		failRegister := auth.Fail{IsError: true, Message: "Unable to register"}
+	} else {
+		// not need on register
+
+		failRegister := auth.Success{}
+
+		failRegister.Fail.IsError = true
+		failRegister.Fail.Message = "unable to resgiter"
 		regByte, err := json.Marshal(&failRegister)
 		if err != nil {
 			a.ErrorLog.Fatal(err)
@@ -51,7 +59,7 @@ func (a *App) NewAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) SigninHandler(w http.ResponseWriter, r *http.Request) {
 
-	var signin account.Signin
+	var signin auth.Signin
 
 	err := json.NewDecoder(r.Body).Decode(&signin)
 	if err != nil {
@@ -63,14 +71,14 @@ func (a *App) SigninHandler(w http.ResponseWriter, r *http.Request) {
 
 	if ok {
 
-		ok, err := security.ComparePassword(hashPassword, signin.Password)
-		if err != nil {
-			a.ErrorLog.Fatal(err)
-		}
+		ok := security.ComparePassword(hashPassword, signin.Password)
 
 		if ok {
 
 			successSignin := a.Db.GetAuthSuccess(signin.Email)
+			successSignin.Fail.IsError = false
+			successSignin.Fail.Message = ""
+
 			regByte, err := json.Marshal(&successSignin)
 			if err != nil {
 				a.ErrorLog.Fatal(err)
@@ -81,7 +89,10 @@ func (a *App) SigninHandler(w http.ResponseWriter, r *http.Request) {
 
 		} else {
 
-			failSignin := auth.Fail{IsError: true, Message: "Unable to Signin"}
+			failSignin := auth.Success{}
+			failSignin.Fail.IsError = true
+			failSignin.Fail.Message = "Unable to signin wrong password or email"
+
 			regByte, err := json.Marshal(&failSignin)
 			if err != nil {
 				a.ErrorLog.Fatal(err)
@@ -93,5 +104,4 @@ func (a *App) SigninHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
 }

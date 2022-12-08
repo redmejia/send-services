@@ -3,14 +3,13 @@ package dbpostgres
 import (
 	"context"
 	"p2p/auth"
-	account "p2p/auth"
 	"p2p/transfer"
 	"p2p/wallet"
 	"strings"
 	"time"
 )
 
-func (db *DBPostgres) InsertNewUser(user *account.Register) bool {
+func (db *DBPostgres) InsertNewUser(user *auth.Register) bool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -74,14 +73,14 @@ func (db *DBPostgres) InsertNewUser(user *account.Register) bool {
 	return true
 }
 
-func (db *DBPostgres) GetInfoBank(userID string) account.Bank {
+func (db *DBPostgres) GetInfoBank(userID string) auth.Bank {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	row := db.Db.QueryRowContext(ctx,
 		`select user_card, cv_number from user_bank_info where user_uid = $1`, userID)
 
-	var bankInfo account.Bank
+	var bankInfo auth.Bank
 
 	err := row.Scan(&bankInfo.Card, &bankInfo.CvNumber)
 	if err != nil {
