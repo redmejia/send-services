@@ -21,7 +21,7 @@ services:
       dockerfile: ./../users-info-service/users-info-service.Dockerfile
     restart: always
     ports:
-      - "8081:80"
+      - "8085:80"
     deploy:
       mode: replicated
       replicas: 1

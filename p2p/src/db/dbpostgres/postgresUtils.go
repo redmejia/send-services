@@ -260,11 +260,11 @@ func (db *DBPostgres) GetWalletInformation(userID string) wallet.Wallet {
 	var myWallet wallet.Wallet
 
 	row := db.Db.QueryRowContext(ctx,
-		`select user_uid, wallet_id, username, balance, created_at
+		`select share_id, user_uid, wallet_id, username, balance, created_at
 			from wallet 
 		where user_uid = $1`, userID)
 
-	err := row.Scan(&myWallet.UserID, &myWallet.WalletId, &myWallet.Username, &myWallet.Balance, &myWallet.CreatedAt)
+	err := row.Scan(&myWallet.ShareID, &myWallet.UserID, &myWallet.WalletId, &myWallet.Username, &myWallet.Balance, &myWallet.CreatedAt)
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 	}
@@ -299,13 +299,33 @@ func (db *DBPostgres) GetAuthSuccess(email string) auth.Success {
 	defer cancel()
 
 	row := db.Db.QueryRowContext(ctx,
-		`select s.user_uid, w.username, r.phone from signin as s 
-			join wallet as w on s.user_uid = w.user_uid
-			join register as r on w.user_uid = r.user_uid
-		where s.email = $1`, email)
+		`select 
+			s.user_uid, 
+			w.username, 
+			r.phone, 
+			w.share_id, 
+			w.user_uid,
+			w.wallet_id,
+			w.username, 
+			w.balance, 
+			w.created_at 
+		from signin as s 
+		join wallet as w on s.user_uid = w.user_uid
+		join register as r on w.user_uid = r.user_uid
+		where s.email  = $1`, email)
 
 	var success auth.Success
-	err := row.Scan(&success.UserID, &success.Username, &success.PhoneNumber)
+	err := row.Scan(
+		&success.UserID,
+		&success.Username,
+		&success.PhoneNumber,
+		&success.Wallet.ShareID,
+		&success.Wallet.UserID,
+		&success.Wallet.WalletId,
+		&success.Wallet.Username,
+		&success.Wallet.Balance,
+		&success.Wallet.CreatedAt,
+	)
 	if err != nil {
 		db.ErrorLog.Fatal(err)
 	}

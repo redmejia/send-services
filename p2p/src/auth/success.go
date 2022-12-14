@@ -1,10 +1,13 @@
 package auth
 
+import "p2p/wallet"
+
 type Success struct {
-	UserID      string `json:"user_id"`
-	Username    string `json:"username"`
-	PhoneNumber string `json:"phone_number"`
-	Fail        `json:"fail"`
+	UserID        string `json:"user_id"`
+	Username      string `json:"username"`
+	PhoneNumber   string `json:"phone_number"`
+	wallet.Wallet `json:"wallet"`
+	Fail          `json:"fail"`
 }
 
 type Fail struct {
